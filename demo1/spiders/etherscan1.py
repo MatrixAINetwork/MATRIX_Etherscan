@@ -17,10 +17,11 @@ class etherscan1Spider(scrapy.Spider):
     def start_requests(self):
         pre_url = 'https://etherscan.io/contractsVerified'
         contract_start_page = 2
-        contract_end_page = 3
+        contract_end_page = 8
         for i in range(contract_start_page, contract_end_page):
             url = '{}/{}'.format(pre_url, i)
-            print(url)
+            # print(url)
+            print("Adding page %s" % i + " for downloading!")
             # yield scrapy.Request(url=url, callback=self.parse)
             yield scrapy.Request(url=url, meta={
                 'dont_redirect': True,
@@ -38,7 +39,7 @@ class etherscan1Spider(scrapy.Spider):
         filename = 'quotes-%s.html' % page
         with open(filename, 'wb') as f:
             f.write(response.body)
-        self.log('Saved file %s' % filename)
+        # self.log('Saved file %s' % filename)
 
         addr_list = response.xpath('//td[1]/a[1]/@href').extract()
         addl_list = response.xpath('//td[1]/a[1]/text()').extract()
@@ -65,7 +66,7 @@ class etherscan1Spider(scrapy.Spider):
             urllist.append(newurl)
             i = i + 1
 
-        print(urllist)
+        #print(urllist)
 
     def parse_sc(self, response):
         def extract_with_css(query):
