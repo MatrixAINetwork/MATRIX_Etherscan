@@ -16,11 +16,22 @@ class etherscan1Spider(scrapy.Spider):
 
     def start_requests(self):
         pre_url = 'https://etherscan.io/contractsVerified'
-        contract_page_amount = 2
-        for i in range(int(contract_page_amount)):
+        contract_start_page = 2
+        contract_end_page = 3
+        for i in range(contract_start_page, contract_end_page):
             url = '{}/{}'.format(pre_url, i)
             print(url)
-            yield scrapy.Request(url=url, callback=self.parse)
+            # yield scrapy.Request(url=url, callback=self.parse)
+            yield scrapy.Request(url=url, meta={
+                'dont_redirect': True,
+                'handle_httpstatus_list': [302]
+            }, callback=self.parse)
+
+    # def parse(self, response):
+    #     for href in response.css("ul.directory.dir-col > li > a::attr('href')"):
+    #         url = response.urljoin('https://etherscan.io', href.extract())
+    #         print(url)
+    #         yield scrapy.Request(url, callback=self.parse_dir_contents)
 
     def parse(self, response):
         page = response.url.split("/")[-1]
@@ -45,7 +56,11 @@ class etherscan1Spider(scrapy.Spider):
             self.sc_name = filename
             # global sc_name1
             # sc_name1=filename
-            yield response.follow(newurl, self.parse_sc)
+            # yield response.follow(newurl, self.parse_sc)
+            yield scrapy.Request(url=newurl, meta={
+                'dont_redirect': True,
+                'handle_httpstatus_list': [302]
+            }, callback=self.parse_sc)
 
             urllist.append(newurl)
             i = i + 1
@@ -56,22 +71,39 @@ class etherscan1Spider(scrapy.Spider):
         def extract_with_css(query):
             return response.css(query).extract_first().strip()
 
-        sc_content = response.xpath('//div[@id=\'dividcode\']/pre[1]/text()').extract()
+        # print (response)
+        sc_content = response.xpath('//div[@id=\'dividcode\']//pre[1]/text()').extract()
+        # sc_content = response.xpath('//div[@id=\'dividcode\']').extract()
+        # print (sc_content)
         sc_abstract = response.xpath('//pre[@id=\'js-copytextarea2\']/text()').extract()
         sc_name0 = response.xpath(
             '//div[@id=\'ContentPlaceHolder1_contractCodeDiv\']/div[2]/table/tr[1]/td[2]/text()').extract()
-        sc_name = sc_name0[0].replace("\n", "")
+        # print(sc_name0)
+        if (sc_name0 == []):
+            print("error")
+            sc_name = "err"
+        else:
+            sc_name = sc_name0[0].replace("\n", "")
         sc_addr = response.xpath('//*[@id="mainaddress"]/text()').extract()
 
-        filename1 = "./sol/sc_" + sc_name + "_" + sc_addr[0] + ".sol"
-        with open(filename1, 'w') as f:
-            # f.write(response.body)
-            f.write(sc_content[0])
+        if (sc_addr == []):
+            sc_addr0 = "erra"
+            print("addr error")
+        else:
+            sc_addr0 = sc_addr[0]
 
-        filename2 = "./sol/sc_" + sc_name + "_" + sc_addr[0] + ".ifsol"
+        filename1 = "./sol/sc_" + sc_name + "_" + sc_addr0 + ".sol"
+        filename2 = "./sol/sc_" + sc_name + "_" + sc_addr0 + ".ifsol"
+        # if len(sc_content):
+        with open(filename1, 'w') as f:
+            if len(sc_content):
+                f.write(sc_content[0])
+                # f.write(sc_content[0])
+
         with open(filename2, 'w') as f:
-            # f.write(response.body)
-            f.write(sc_abstract[0])
+            if len(sc_abstract):
+                f.write(sc_abstract[0])
+                # f.write(sc_abstract[0])
 
         self.log("writing " + filename1)
         # print(sc_addr,sc_name,sc_content,sc_abstract)
